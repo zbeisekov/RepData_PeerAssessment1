@@ -123,6 +123,61 @@ sum(is.na(activity_raw))
 ```
 ## [1] 2304
 ```
+2. For the missing values, let's put the mean for the same interval. Drop additional
+columns created during the process.
 
+```r
+activity_mod <- activity_raw %>%
+    group_by(interval) %>% 
+    mutate(mean_steps = mean(steps, na.rm = TRUE)) %>%
+    mutate(steps = ifelse(is.na(steps), mean_steps, steps)) %>%
+    select(-mean_steps)
+```
+3. Histogram of the total number of steps taken each day after missing values are imputed.
+
+```r
+total_mod_steps <- activity_mod %>%
+    group_by(date) %>%
+    summarise(steps_per_day = sum(steps))
+
+total_mod_steps %>%
+    ggplot(aes(steps_per_day)) + 
+    geom_histogram(binwidth = 1000)
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 ## Are there differences in activity patterns between weekdays and weekends?
+1. Calculate if there are weekends. We assume that week starts on Monday. 
+
+```r
+library(lubridate)
+```
+
+```
+## 
+## Attaching package: 'lubridate'
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     date, intersect, setdiff, union
+```
+
+```r
+activity_wday <- activity_mod %>%
+    mutate(wday = wday(ymd(date), week_start = 1)) %>%
+    mutate(is_weekend = ifelse(wday > 5, TRUE, FALSE)) %>%
+    group_by(is_weekend, interval) %>%
+    summarise(mean_per_wday = mean(steps), .groups = 'drop')
+```
+2. Let's see how working days (FALSE) are different from weekends (TRUE). 
+
+```r
+ggplot(activity_wday, aes(interval, mean_per_wday)) +
+    geom_line(color = "navy") + 
+    facet_grid(rows = vars(is_weekend))
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
